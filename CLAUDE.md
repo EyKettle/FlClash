@@ -1,5 +1,26 @@
-# CLAUDE.md - Claude Code instructions
+# CLAUDE.md
 
-Please read AGENTS.md for all project guidelines and conventions.
+This file is the entry point for AI coding agents working in this repository. Detailed rules and skills are kept under
+`.agents/` so the root file stays small and easy to scan.
 
-@AGENTS.md
+## Start Here
+
+Read these files before making changes:
+
+- [.agents/project.md](.agents/project.md): project overview, versions, and build dependencies.
+- [.agents/commands.md](.agents/commands.md): build, development, code generation, and test commands.
+- [.agents/rules.md](.agents/rules.md): lint, testing, generated-code, and workflow rules.
+- [.agents/architecture.md](.agents/architecture.md): core integration, providers, database, managers, build system, and
+  local plugins.
+- [.agents/skills.md](.agents/skills.md): recurring agent workflows such as localization, Flutter UI, provider, and
+  platform work.
+
+## Highest Priority Rules
+
+- Use `flutter test`, not `dart test`, because models pull in Flutter types.
+- Run code generation after modifying models, providers, or database schema.
+- Do not manually edit generated files.
+- Follow `analysis_options.yaml`, especially single quotes, trailing commas, `child:` last, no `print()`, const/final
+  preferences, and declared return types.
+- For CI parity, verify with `flutter pub get`, `flutter analyze --no-fatal-infos`, and
+  `flutter test --reporter expanded` when practical.
