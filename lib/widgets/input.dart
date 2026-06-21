@@ -247,10 +247,7 @@ class _ListInputPageState extends ConsumerState<ListInputPage> {
   }
 
   void _handleReorder(int oldIndex, newIndex) {
-    final nextItems = List<String>.from(_items);
-    final item = nextItems.removeAt(oldIndex);
-    nextItems.insert(newIndex, item);
-    _items = nextItems;
+    _items = _items.copyAndReorder(oldIndex, newIndex);
     setState(() {});
   }
 
@@ -488,10 +485,7 @@ class _MapInputPageState extends ConsumerState<MapInputPage> {
   }
 
   void _handleReorder(int oldIndex, newIndex) {
-    final nextItems = List<MapEntry<String, String>>.from(_items);
-    final item = nextItems.removeAt(oldIndex);
-    nextItems.insert(newIndex, item);
-    _items = nextItems;
+    _items = _items.copyAndReorder(oldIndex, newIndex);
     setState(() {});
   }
 
