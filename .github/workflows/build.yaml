@@ -284,7 +284,7 @@ jobs:
           destination-github-username: chen08209
           destination-repository-name: homebrew-tap
           user-name: 'chen08029'
-          user-email: 'chen08209@gamil.com'
+          user-email: 'chen08209@gmail.com'
           target-branch: main
           commit-message: Update Homebrew cask from ${{ github.ref_name }}
           target-directory: /
@@ -305,8 +305,8 @@ jobs:
           source-directory: ./tmp/
           destination-github-username: chen08209
           destination-repository-name: FlClash-fdroid-repo
-          user-name: 'github-actions[bot]'
-          user-email: 'github-actions[bot]@users.noreply.github.com'
+          user-name: 'chen08029'
+          user-email: 'chen08209@gmail.com'
           target-branch: main
           commit-message: Update from ${{ github.ref_name }}
           target-directory: /tmp/
