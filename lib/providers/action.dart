@@ -982,15 +982,7 @@ class GeoResourceAction extends _$GeoResourceAction {
   void build() {}
 
   Future<void> updateGeoResource(GeoResource geoResource) async {
-    try {
-      ref.read(isUpdatingProvider(geoResource.updatingKey).notifier).value =
-          true;
-      final message = await coreController.updateGeoData(geoResource.name);
-      if (message.isNotEmpty) throw message;
-    } finally {
-      ref.read(isUpdatingProvider(geoResource.updatingKey).notifier).value =
-          false;
-    }
+    await coreController.updateGeoData(geoResource.name);
   }
 
   void updateGeoResourceUrl(GeoResource geoResource, String newUrl) {

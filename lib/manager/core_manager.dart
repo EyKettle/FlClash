@@ -114,7 +114,7 @@ class _CoreContainerState extends ConsumerState<CoreManager>
 
   @override
   void onGeoUpdate(String geoType, bool updating, String? error) {
-    final key = GeoResource.fromJson(geoType).updatingKey;
+    final key = GeoResource.fromJson(geoType.toLowerCase()).updatingKey;
     ref.read(isUpdatingProvider(key).notifier).value = updating;
     if (!updating && error != null && error.isNotEmpty) {
       globalState.showNotifier(error);
