@@ -224,6 +224,7 @@ class SetupAction extends _$SetupAction {
         final message = await coreController.updateConfig(
           updateParams.copyWith.tun(enable: realTunEnable),
         );
+        ref.read(checkIpNumProvider.notifier).add();
         if (message.isNotEmpty) throw message;
       });
     });
@@ -254,7 +255,6 @@ class SetupAction extends _$SetupAction {
           .read(proxiesActionProvider.notifier)
           .updateCurrentGroupName(GroupName.GLOBAL.name);
     }
-    ref.read(checkIpNumProvider.notifier).add();
   }
 
   void autoApplyProfile() {
