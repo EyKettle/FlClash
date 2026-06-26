@@ -41,12 +41,11 @@ class HomePage extends StatelessWidget {
                 child: NavigationBar(
                   destinations: navigationItems
                       .map(
-                        (e) =>
-                        NavigationDestination(
+                        (e) => NavigationDestination(
                           icon: e.icon,
                           label: Intl.message(e.label.name),
                         ),
-                  )
+                      )
                       .toList(),
                   onDestinationSelected: (index) {
                     _handleToPage(navigationItems[index].label);
@@ -58,7 +57,7 @@ class HomePage extends StatelessWidget {
                 return AnnotatedRegion<SystemUiOverlayStyle>(
                   value: systemUiOverlayStyle.copyWith(
                     systemNavigationBarColor:
-                    context.colorScheme.surfaceContainer,
+                        context.colorScheme.surfaceContainer,
                   ),
                   child: Column(
                     children: [
@@ -104,9 +103,9 @@ class HomePage extends StatelessWidget {
                       child: isMobile
                           ? navigationView
                           : Navigator(
-                        pages: [MaterialPage(child: navigationView)],
-                        onDidRemovePage: (_) {},
-                      ),
+                              pages: [MaterialPage(child: navigationView)],
+                              onDidRemovePage: (_) {},
+                            ),
                     );
                     return view;
                   },
@@ -160,21 +159,20 @@ class _HomePageViewState extends ConsumerState<_HomePageView> {
     return widget.navigationItems.indexWhere((item) => item.label == pageLabel);
   }
 
-  Future<void> _toPage(PageLabel pageLabel, [
+  Future<void> _toPage(
+    PageLabel pageLabel, [
     bool ignoreAnimateTo = false,
   ]) async {
     if (!mounted) {
       return;
     }
     final index = widget.navigationItems.indexWhere(
-          (item) => item.label == pageLabel,
+      (item) => item.label == pageLabel,
     );
     if (index == -1) {
       return;
     }
-    final isAnimateToPage = ref
-        .read(appSettingProvider)
-        .isAnimateToPage;
+    final isAnimateToPage = ref.read(appSettingProvider).isAnimateToPage;
     final isMobile = ref.read(isMobileViewProvider);
     if (isAnimateToPage && isMobile && !ignoreAnimateTo) {
       await _pageController.animateToPage(
@@ -216,19 +214,15 @@ class _HomePageViewState extends ConsumerState<_HomePageView> {
 
 class _NavigationBarDefaultsM3 extends NavigationBarThemeData {
   _NavigationBarDefaultsM3(this.context)
-      : super(
-    height: 80.0,
-    elevation: 3.0,
-    labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-  );
+    : super(
+        height: 80.0,
+        elevation: 3.0,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+      );
 
   final BuildContext context;
-  late final ColorScheme _colors = Theme
-      .of(context)
-      .colorScheme;
-  late final TextTheme _textTheme = Theme
-      .of(context)
-      .textTheme;
+  late final ColorScheme _colors = Theme.of(context).colorScheme;
+  late final TextTheme _textTheme = Theme.of(context).textTheme;
 
   @override
   Color? get backgroundColor => _colors.surfaceContainer;
