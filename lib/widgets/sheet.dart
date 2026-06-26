@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:fl_clash/common/common.dart';
 import 'package:fl_clash/models/common.dart';
 import 'package:fl_clash/providers/app.dart';
@@ -288,10 +286,7 @@ class _AdaptiveSheetScaffoldState extends State<AdaptiveSheetScaffold> {
                       child: ValueListenableBuilder(
                         valueListenable: _isScrolledController,
                         builder: (_, isScrolled, child) {
-                          return ClipRRect(
-                            borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(28),
-                            ),
+                          return ClipRect(
                             child: BackdropFilter(
                               filter: commonFilter,
                               child: ColoredBox(
