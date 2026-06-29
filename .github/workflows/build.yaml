@@ -21,7 +21,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version: 3.41.9
+          flutter-version: 3.44.4
           cache: true
 
       - name: Install dependencies
@@ -47,9 +47,7 @@ jobs:
           - platform: linux
             os: ubuntu-22.04
             arch: amd64
-          - platform: macos
-            os: macos-15-intel
-            arch: amd64
+
           - platform: macos
             os: macos-latest
             arch: arm64
@@ -74,11 +72,19 @@ jobs:
         with:
           submodules: recursive
 
+
+      - name: Free disk space
+        if: startsWith(matrix.platform,'android')
+        run: |
+          sudo apt-get clean
+          docker system prune -af --volumes 2>/dev/null || true
+          rm -rf ~/.gradle/caches/
+          df -h
       - name: Setup Android Signing
         if: startsWith(matrix.platform,'android')
         run: |
           echo "${{ secrets.KEYSTORE }}" | base64 --decode > android/app/keystore.jks
-          echo "${{ secrets.SERVICE_JSON }}" | base64 --decode > android/app/google-services.json
+
           echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/local.properties
           echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> android/local.properties
           echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/local.properties
@@ -99,14 +105,14 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version: 3.41.9
+          flutter-version: 3.44.4
           cache: true
       - name: Setup Flutter With Other
         if: startsWith(matrix.os, 'windows-11-arm') || startsWith(matrix.os, 'ubuntu-24.04-arm')
         uses: subosito/flutter-action@v2
         with:
           channel: master
-          flutter-version: 3.44.0-0.1.pre
+          flutter-version: 3.44.4
           cache: true
 
       - name: Setup NDK
@@ -159,8 +165,51 @@ jobs:
               range="${prev:+$prev..}$curr"
           
               echo -e "## $curr\n" >> "$temp"
-              git log --no-merges --pretty=format:"%B" "$range" | \
-              awk '!/Update changelog/ && NF {print "- " $0 "\n"}' >> "$temp"
+              git log --no-merges --pretty=format:"%s" "$range" | \
+              awk '\''
+              !/^Update changelog/ && NF {
+                line = $0; type = ""; scope = ""; desc = ""
+                if (match(line, /^[a-z]+\(/)) {
+                  c = substr(line, RSTART, RLENGTH - 1)
+                  r = substr(line, RSTART + RLENGTH)
+                  if (c == "feat" || c == "fix" || c == "docs" || c == "chore" || c == "build" || c == "ci" || c == "refactor" || c == "perf" || c == "test" || c == "style" || c == "revert") {
+                    type = c
+                    if (match(r, /^[^)]+\): /)) {
+                      scope = substr(r, 1, RLENGTH - 3)
+                      desc = substr(r, RLENGTH + 1)
+                    }
+                  }
+                }
+                if (type == "") {
+                  if (match(line, /^[a-z]+: /)) {
+                    c = substr(line, RSTART, RLENGTH - 2)
+                    if (c == "feat" || c == "fix" || c == "docs" || c == "chore" || c == "build" || c == "ci" || c == "refactor" || c == "perf" || c == "test" || c == "style" || c == "revert") {
+                      type = c; desc = substr(line, RLENGTH + 1)
+                    }
+                  }
+                }
+                if (type == "") { other = other "- " line "\n"; next }
+                if (scope != "") entry = "- (" scope ") " desc "\n"; else entry = "- " desc "\n"
+                if (type == "feat") feats = feats entry
+                else if (type == "fix") fixes = fixes entry
+                else if (type == "docs") docss = docss entry
+                else if (type == "chore") chores = chores entry
+                else if (type == "build") builds = builds entry
+                else if (type == "ci") cis = cis entry
+                else if (type == "refactor") refs = refs entry
+                else other = other entry
+              }
+              END {
+                f = 1
+                if (feats)  { if (!f) print ""; print "## feat\n"; printf "%s", feats; f = 0 }
+                if (fixes)  { if (!f) print ""; print "## fix\n"; printf "%s", fixes; f = 0 }
+                if (docss)  { if (!f) print ""; print "## docs\n"; printf "%s", docss; f = 0 }
+                if (chores) { if (!f) print ""; print "## chore\n"; printf "%s", chores; f = 0 }
+                if (builds) { if (!f) print ""; print "## build\n"; printf "%s", builds; f = 0 }
+                if (cis)    { if (!f) print ""; print "## ci\n"; printf "%s", cis; f = 0 }
+                if (refs)   { if (!f) print ""; print "## refactor\n"; printf "%s", refs; f = 0 }
+                if (other)  { if (!f) print ""; print "## other\n"; printf "%s", other }
+              }'\'' >> "$temp"
           done
           [ -f CHANGELOG.md ] && cat CHANGELOG.md >> "$temp"
           
@@ -172,8 +221,8 @@ jobs:
           git add CHANGELOG.md
           if ! git diff --cached --quiet; then
             echo "Commit pushing"
-            git config --local user.email "chen08209@gmail.com"
-            git config --local user.name "chen08209"
+            git config --local user.email "eykettle@tutamail.com"
+            git config --local user.name "EyKettle"
             git commit -m "Update changelog"
             git push
             if [ $? -eq 0 ]; then
@@ -191,14 +240,6 @@ jobs:
     permissions: write-all
     needs: [ build ]
     runs-on: ubuntu-latest
-    services:
-      telegram-bot-api:
-        image: aiogram/telegram-bot-api:latest
-        env:
-          TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
-          TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
-        ports:
-          - 8081:8081
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -214,44 +255,78 @@ jobs:
 
       - name: Generate release.md
         run: |
+          out="release.md"
+
+          # Download table first (placement on top)
+          version=$(echo "${{ github.ref_name }}" | sed 's/^v//')
+          sed "s|VERSION|$version|g" ./.github/release_template.md > "$out"
+          echo "" >> "$out"
+
+          # Then git log grouped by type
           tags=($(git tag --merged HEAD --sort=-creatordate))
-          preTag=$(curl -s "https://api.github.com/repos/chen08209/FlClash/releases/latest" | \
+          preTag=$(curl -s "https://api.github.com/repos/EyKettle/FlClash/releases/latest" | \
           sed -nE 's/.*"tag_name": "([^"]+)".*/\1/p')
-          
           [ -z "$preTag" ] && preTag=""
-          
-          out="release.md" > "$out"
-          
+
           for i in "${!tags[@]}"; do
             curr="${tags[i]}"
             [[ "$curr" == "$preTag" ]] && break
-          
             prev="${tags[i+1]}"
             range="${prev:+$prev..}$curr"
-          
-            git log --no-merges --pretty=format:"%B" "$range" | \
-            awk '!/Update changelog/ && NF {print "- " $0 "\n"}' >> "$out"
-          done
-      - name: Push to telegram
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TAG: ${{ github.ref_name }}
-          RUN_ID: ${{ github.run_id }}
-        run: |
-          python -m pip install --upgrade pip
-          pip install requests
-          python release_telegram.py
 
-      - name: Patch release.md
-        run: |
-          version=$(echo "${{ github.ref_name }}" | sed 's/^v//')
-          sed "s|VERSION|$version|g" ./.github/release_template.md >> release.md
+            echo -e "## $curr\n" >> "$out"
+            git log --no-merges --pretty=format:"%s" "$range" | \
+            awk '\''
+            !/^Update changelog/ && NF {
+              line = $0; type = ""; scope = ""; desc = ""
+              if (match(line, /^[a-z]+\(/)) {
+                c = substr(line, RSTART, RLENGTH - 1)
+                r = substr(line, RSTART + RLENGTH)
+                if (c == "feat" || c == "fix" || c == "docs" || c == "chore" || c == "build" || c == "ci" || c == "refactor" || c == "perf" || c == "test" || c == "style" || c == "revert") {
+                  type = c
+                  if (match(r, /^[^)]+\): /)) {
+                    scope = substr(r, 1, RLENGTH - 3)
+                    desc = substr(r, RLENGTH + 1)
+                  }
+                }
+              }
+              if (type == "") {
+                if (match(line, /^[a-z]+: /)) {
+                  c = substr(line, RSTART, RLENGTH - 2)
+                  if (c == "feat" || c == "fix" || c == "docs" || c == "chore" || c == "build" || c == "ci" || c == "refactor" || c == "perf" || c == "test" || c == "style" || c == "revert") {
+                    type = c; desc = substr(line, RLENGTH + 1)
+                  }
+                }
+              }
+              if (type == "") { other = other "- " line "\n"; next }
+              if (scope != "") entry = "- (" scope ") " desc "\n"; else entry = "- " desc "\n"
+              if (type == "feat") feats = feats entry
+              else if (type == "fix") fixes = fixes entry
+              else if (type == "docs") docss = docss entry
+              else if (type == "chore") chores = chores entry
+              else if (type == "build") builds = builds entry
+              else if (type == "ci") cis = cis entry
+              else if (type == "refactor") refs = refs entry
+              else other = other entry
+            }
+            END {
+              f = 1
+              if (feats)  { if (!f) print ""; print "## feat\n"; printf "%s", feats; f = 0 }
+              if (fixes)  { if (!f) print ""; print "## fix\n"; printf "%s", fixes; f = 0 }
+              if (docss)  { if (!f) print ""; print "## docs\n"; printf "%s", docss; f = 0 }
+              if (chores) { if (!f) print ""; print "## chore\n"; printf "%s", chores; f = 0 }
+              if (builds) { if (!f) print ""; print "## build\n"; printf "%s", builds; f = 0 }
+              if (cis)    { if (!f) print ""; print "## ci\n"; printf "%s", cis; f = 0 }
+              if (refs)   { if (!f) print ""; print "## refactor\n"; printf "%s", refs; f = 0 }
+              if (other)  { if (!f) print ""; print "## other\n"; printf "%s", other }
+            }'\'' >> "$out"
+          done
 
       - name: Generate sha256
         if: ${{ env.IS_STABLE == 'true' }}
         run: |
           cd ./dist
-          sha256sum * > SHA256SUMS
+          find . -type f -exec sha256sum {} \; > SHA256SUMS
 
       - name: Release
         if: ${{ env.IS_STABLE == 'true' }}
@@ -274,7 +349,7 @@ jobs:
           SSH_DEPLOY_KEY: ${{ secrets.SSH_DEPLOY_KEY }}
         with:
           source-directory: ./tmp/
-          destination-github-username: chen08209
+          destination-github-username: EyKettle
           destination-repository-name: FlClash-fdroid-repo
           user-name: 'github-actions[bot]'
           user-email: 'github-actions[bot]@users.noreply.github.com'

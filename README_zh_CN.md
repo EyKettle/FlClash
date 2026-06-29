@@ -6,9 +6,11 @@
 
 ## FlClash
 
-[![Downloads](https://img.shields.io/github/downloads/chen08209/FlClash/total?style=flat-square&logo=github)](https://github.com/chen08209/FlClash/releases/)[![Last Version](https://img.shields.io/github/release/chen08209/FlClash/all.svg?style=flat-square)](https://github.com/chen08209/FlClash/releases/)[![License](https://img.shields.io/github/license/chen08209/FlClash?style=flat-square)](LICENSE)
+[![Downloads](https://img.shields.io/github/downloads/EyKettle/FlClash/total?style=flat-square&logo=github)](https://github.com/EyKettle/FlClash/releases/)[![Last Version](https://img.shields.io/github/release/EyKettle/FlClash/all.svg?style=flat-square)](https://github.com/EyKettle/FlClash/releases/)[![License](https://img.shields.io/github/license/EyKettle/FlClash?style=flat-square)](LICENSE)
 
 [![Channel](https://img.shields.io/badge/Telegram-Channel-blue?style=flat-square&logo=telegram)](https://t.me/FlClash)
+
+[![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-%23FE5196?logo=conventionalcommits&logoColor=white)](https://www.conventionalcommits.org/zh-hans/v1.0.0/)
 
 基于ClashMeta的多平台代理客户端，简单易用，开源无广告。
 
@@ -59,7 +61,7 @@ on Mobile:
 
 ## Download
 
-<a href="https://chen08209.github.io/FlClash-fdroid-repo/repo?fingerprint=789D6D32668712EF7672F9E58DEEB15FBD6DCEEC5AE7A4371EA72F2AAE8A12FD"><img alt="Get it on F-Droid" src="snapshots/get-it-on-fdroid.svg" width="200px"/></a> <a href="https://github.com/chen08209/FlClash/releases"><img alt="Get it on GitHub" src="snapshots/get-it-on-github.svg" width="200px"/></a>
+<a href="https://github.com/EyKettle/FlClash/releases"><img alt="Get it on GitHub" src="snapshots/get-it-on-github.svg" width="200px"/></a>
 
 ## Build
 
@@ -121,12 +123,27 @@ on Mobile:
            dart setup.dart macos
            ```
 
+## 贡献指南
+
+请遵循 [Conventional Commits 1.0.0](https://www.conventionalcommits.org/zh-hans/v1.0.0/) 规范编写 commit 信息。
+
+格式：`<类型>[可选 范围]: <描述>`
+
+常用类型：`feat`（功能）、`fix`（修复）、`chore`（杂项）、`docs`（文档）、`style`（样式）、`refactor`（重构）、`perf`（性能）、`test`（测试）、`ci`（CI）
+
+示例：
+```
+feat: add custom User-Agent support for profiles
+fix: resolve JNI null pointer dereference
+chore: update dependencies
+```
+
 ## Star
 
 支持开发者的最简单方式是点击页面顶部的星标（⭐）。
 
 <p style="text-align: center;">
-    <a href="https://api.star-history.com/svg?repos=chen08209/FlClash&Date">
-        <img alt="start" width=50% src="https://api.star-history.com/svg?repos=chen08209/FlClash&Date"/>
+    <a href="https://api.star-history.com/svg?repos=EyKettle/FlClash&Date">
+        <img alt="start" width=50% src="https://api.star-history.com/svg?repos=EyKettle/FlClash&Date"/>
     </a>
 </p>

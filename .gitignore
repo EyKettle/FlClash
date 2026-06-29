@@ -75,3 +75,8 @@ devtools_options.yaml
 # FVM Version Cache
 .fvm/
 .fvmrc
+
+# Signing keys (never commit keystore files)
+*.jks
+*.p12
+*.keystore

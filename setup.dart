@@ -168,10 +168,7 @@ Future<int> _package(
     platform: platform,
     verbose: verbose,
   );
-  final descriptionArgs = <String>[];
-  if (platform != 'android') {
-    descriptionArgs.addAll(['--description', arch]);
-  }
+  // --description was removed in upstream unified_distributor
 
   final depExit = await _ensureDependencies(platform, arch);
   if (depExit != 0) return depExit;
@@ -189,7 +186,6 @@ Future<int> _package(
         '--build-target-platform=${_androidFlutterTarget[androidArch]!}',
       if (flutterBuildArgs.isNotEmpty)
         '--flutter-build-args=${flutterBuildArgs.join(',')}',
-      ...descriptionArgs,
     ],
     includeParentEnvironment: true,
     environment: {'ANDROID_ARCH': ?androidArch},
@@ -245,8 +241,8 @@ String _detectArch() {
 }
 
 Future<bool> _hasCommand(String cmd) async {
-  final which = Platform.isWindows ? 'where' : 'command';
-  final args = Platform.isWindows ? [cmd] : ['-v', cmd];
+  final which = Platform.isWindows ? 'where' : 'which';
+  final args = [cmd];
   final result = await Process.run(which, args);
   return result.exitCode == 0;
 }
@@ -276,6 +272,12 @@ Future<int> _ensureMacosDependencies() async {
 }
 
 Future<int> _ensureLinuxDependencies(String arch) async {
+  // dpkg is Debian-specific; skip dep check on other distros.
+  if (!await _hasCommand('dpkg')) {
+    stdout.writeln('dpkg not found -- skipping Linux dependency check.');
+    stdout.writeln('Use flutter doctor to verify build prerequisites.');
+    return 0;
+  }
   final pkgGroups = <List<String>>[
     ['ninja-build', 'libgtk-3-dev'],
     ['libayatana-appindicator3-dev'],

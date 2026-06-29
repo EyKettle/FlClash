@@ -136,10 +136,9 @@ object Service {
     suspend fun setCrashlytics(
         enable: Boolean
     ): Result<Unit> {
-        return delegate.useService {
-            it.setCrashlytics(enable)
-        }
+        return Result.success(Unit)
     }
+
 
     private suspend fun awaitIResultInterface(
         block: (IResultInterface) -> Unit

@@ -177,7 +177,7 @@ class RemoteService : Service(),
         }
 
         override fun setCrashlytics(enable: Boolean) {
-            GlobalState.setCrashlytics(enable)
+            // No-op: Firebase crashlytics removed in fork
         }
 
         override fun getRunTime(): Long {

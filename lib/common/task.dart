@@ -91,6 +91,41 @@ Future<VM2<String, String>> makeRealProfileTask(
   );
 }
 
+const _ruleParams = {'no-resolve', 'src'};
+
+/// Fixes rules that are missing a TARGET field.
+/// Some subscription sources produce rules like `IP-CIDR,192.133.76.0/22,no-resolve`
+/// where `no-resolve` is a parameter but the TARGET (proxy name) is missing.
+/// This inserts a default TARGET to prevent mihomo from treating the parameter
+/// as a proxy name.
+List<String> _fixRules(List<String> rules) {
+  String defaultTarget = 'DIRECT';
+  for (final rule in rules.reversed) {
+    final parts = rule.split(',');
+    final nonParams = parts.where((p) => !_ruleParams.contains(p)).toList();
+    if (nonParams.isNotEmpty && nonParams.first == 'MATCH') {
+      if (nonParams.length >= 2 && nonParams.last.isNotEmpty) {
+        defaultTarget = nonParams.last;
+      }
+      break;
+    }
+  }
+
+  return rules.map((rule) {
+    final parts = rule.split(',');
+    final nonParams = parts.where((p) => !_ruleParams.contains(p)).toList();
+    if (nonParams.length < 2) return rule;
+    final first = nonParams.first;
+    final isMatch = first == 'MATCH';
+    final isSubRule = first == 'SUB-RULE';
+    if (isMatch || isSubRule) return rule;
+    // A well-formed rule has at least: TYPE, CONTENT, TARGET (3 non-param parts)
+    if (nonParams.length >= 3) return rule;
+    // Missing TARGET: nonParams is [TYPE, CONTENT]. Insert defaultTarget.
+    final params = parts.where((p) => _ruleParams.contains(p)).toList();
+    return [...nonParams, defaultTarget, ...params].join(',');
+  }).toList();
+}
 Future<VM2<String, String>> _makeRealProfileTask(
   MakeRealProfileState data,
 ) async {
@@ -222,6 +257,7 @@ Future<VM2<String, String>> _makeRealProfileTask(
   if (data.rules.isEmpty) {
     if (rawConfig['rules'] != null) {
       rules = List<String>.from(rawConfig['rules']);
+      rules = _fixRules(rules);
     }
     if (addedRules.isNotEmpty) {
       final hasMatchPlaceholder = addedRules.any(
@@ -548,7 +584,16 @@ Future<MigrationData> _restoreTask(RootIsolateToken token) async {
   final dir = Directory(restoreDirPath);
   await dir.create(recursive: true);
   for (final file in archive.files) {
-    final outPath = join(restoreDirPath, posix.normalize(file.name));
+    final outPath = canonicalize(join(restoreDirPath, file.name));
+    final canonicalRestoreDir = canonicalize(restoreDirPath);
+    if (!outPath.startsWith('$canonicalRestoreDir${Platform.pathSeparator}') &&
+        outPath != canonicalRestoreDir) {
+      throw 'Invalid zip entry: path traversal detected in "${file.name}"';
+    }
+    final parent = Directory(dirname(outPath));
+    if (!await parent.exists()) {
+      await parent.create(recursive: true);
+    }
     final outputStream = OutputFileStream(outPath);
     file.writeContent(outputStream);
     await outputStream.close();
