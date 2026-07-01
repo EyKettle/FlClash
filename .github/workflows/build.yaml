@@ -133,6 +133,7 @@ jobs:
         run: dart setup.dart ${{ matrix.platform }} ${{ env.IS_STABLE == 'true' && '--env stable' || '' }} -v
 
       - name: Normalize artifacts
+        shell: bash
         run: |
           version=$(grep '^version:' pubspec.yaml | sed 's/version: //' | sed 's/+.*//')
           # Flatten: move files from fastforge subdirectory

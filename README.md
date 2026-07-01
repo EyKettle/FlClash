@@ -62,7 +62,7 @@ Support the following actions
 ## Download
 
 <a href="https://github.com/EyKettle/FlClash/releases"><img alt="Get it on GitHub" src="snapshots/get-it-on-github.svg" width="200px"/></a>
-<a href="https://EyKettle.github.io/FlClash-fdroid-repo"><img alt="Get it on F-Droid" src="snapshots/get-it-on-fdroid.svg" width="200px"/></a>
+<a href="https://EyKettle.github.io/FlClash-fdroid-repo/repo?fingerprint=B3CDD351E9835637EDF4F22FF2B79A608BFCAC535646D843F0DE9A8DD01E6E08"><img alt="Get it on F-Droid" src="snapshots/get-it-on-fdroid.svg" width="200px"/></a>
 
 ## Build
 
