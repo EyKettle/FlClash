@@ -1,3 +1,19 @@
+## v0.8.95
+
+## feat
+- fork from upstream with curated bugfix PRs
+
+## fix
+- (build) add shell:bash to Normalize step for Windows compat
+- (build) normalize artifact names and configure dist output name
+- (release) correct RPM download link pointing to .deb
+- (ci) resolve all CI build and publish failures across platforms
+
+## chore
+- (release) add trailing newline to release template
+
+## ci
+- flatten artifacts and restore split APK names
 ## v0.8.93
 
 - Support custom overwrite
