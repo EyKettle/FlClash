@@ -107,6 +107,7 @@ jobs:
           channel: stable
           flutter-version: 3.44.4
           cache: true
+
       - name: Setup Flutter With Other
         if: startsWith(matrix.os, 'windows-11-arm') || startsWith(matrix.os, 'ubuntu-24.04-arm')
         uses: subosito/flutter-action@v2
@@ -131,6 +132,17 @@ jobs:
       - name: Setup
         run: dart setup.dart ${{ matrix.platform }} ${{ env.IS_STABLE == 'true' && '--env stable' || '' }} -v
 
+      - name: Rename split APKs
+        if: startsWith(matrix.platform,'android')
+        run: |
+          version=$(grep '^version:' pubspec.yaml | sed 's/version: //' | sed 's/+.*//')
+          flutter_apk_dir="build/app/outputs/flutter-apk"
+          for apk in "$flutter_apk_dir"/app-*-release.apk; do
+            [ -f "$apk" ] || continue
+            abi=$(basename "$apk" | sed 's/app-\(.*\)-release.apk/\1/')
+            cp "$apk" "./dist/FlClash-${version}-android-${abi}.apk"
+          done
+
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
@@ -152,24 +164,24 @@ jobs:
         if: ${{ env.IS_STABLE == 'true' }}
         run: |
           last_ver=$(grep -m1 '^## ' CHANGELOG.md 2>/dev/null | sed 's/^## //')
-          
+
           tags=($(git tag --merged HEAD --sort=-creatordate))
-          
+
           temp="NEW_CHANGELOG.md" > "$temp"
-          
+
           for i in "${!tags[@]}"; do
               curr="${tags[i]}"
               [[ "$curr" == "$last_ver" ]] && break
-          
+
               prev="${tags[i+1]}"
               range="${prev:+$prev..}$curr"
-          
+
               echo -e "## $curr\n" >> "$temp"
               git log --no-merges --pretty=format:"%s" "$range" | \
               awk -f ./scripts/group-commits.awk >> "$temp"
           done
           [ -f CHANGELOG.md ] && cat CHANGELOG.md >> "$temp"
-          
+
           mv "$temp" CHANGELOG.md
 
       - name: Commit
@@ -223,7 +235,7 @@ jobs:
           tags=($(git tag --merged HEAD --sort=-creatordate))
           preTag=$(curl -s "https://api.github.com/repos/EyKettle/FlClash/releases/latest" | \
           sed -nE 's/.*"tag_name": "([^"]+)".*/\1/p')
-          [ -z "$preTag" ] && preTag=""
+          [ -z "$preTag" ] && preTag="${tags[0]}"
 
           for i in "${!tags[@]}"; do
             curr="${tags[i]}"
@@ -242,6 +254,11 @@ jobs:
           cd ./dist
           find . -type f -exec sha256sum {} \; > SHA256SUMS
 
+
+      - name: Flatten artifacts
+        if: ${{ env.IS_STABLE == 'true' }}
+        run: |
+          find ./dist -type f -exec mv {} ./dist/ \;
       - name: Release
         if: ${{ env.IS_STABLE == 'true' }}
         uses: softprops/action-gh-release@v2
