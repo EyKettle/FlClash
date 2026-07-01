@@ -132,16 +132,39 @@ jobs:
       - name: Setup
         run: dart setup.dart ${{ matrix.platform }} ${{ env.IS_STABLE == 'true' && '--env stable' || '' }} -v
 
-      - name: Rename split APKs
-        if: startsWith(matrix.platform,'android')
+      - name: Normalize artifacts
         run: |
           version=$(grep '^version:' pubspec.yaml | sed 's/version: //' | sed 's/+.*//')
-          flutter_apk_dir="build/app/outputs/flutter-apk"
-          for apk in "$flutter_apk_dir"/app-*-release.apk; do
-            [ -f "$apk" ] || continue
-            abi=$(basename "$apk" | sed 's/app-\(.*\)-release.apk/\1/')
-            cp "$apk" "./dist/FlClash-${version}-android-${abi}.apk"
-          done
+          # Flatten: move files from fastforge subdirectory
+          find ./dist -type f -exec mv {} ./dist/ \; 2>/dev/null || true
+          # Android: copy split APKs with arch names
+          if [ "${{ matrix.platform }}" = "android" ]; then
+            for apk in build/app/outputs/flutter-apk/app-*-release.apk; do
+              [ -f "$apk" ] || continue
+              abi=$(basename "$apk" | sed 's/app-\(.*\)-release.apk/\1/')
+              cp "$apk" "./dist/FlClash-${version}-android-${abi}.apk"
+            done
+          fi
+          # Non-Android: rename artifacts to include arch
+          if [ -n "${{ matrix.arch }}" ]; then
+            arch="${{ matrix.arch }}"
+            for ext in AppImage deb rpm; do
+              for f in ./dist/FlClash-*-linux*.$ext; do
+                [ -f "$f" ] && mv "$f" "./dist/FlClash-${version}-linux-${arch}.${ext}"
+              done
+            done
+            for f in ./dist/FlClash-*-windows-setup.exe; do
+              [ -f "$f" ] && mv "$f" "./dist/FlClash-${version}-windows-${arch}-setup.exe"
+            done
+            for f in ./dist/FlClash-*-windows.zip; do
+              [ -f "$f" ] && mv "$f" "./dist/FlClash-${version}-windows-${arch}.zip"
+            done
+            for f in ./dist/FlClash-*-macos.dmg; do
+              [ -f "$f" ] && mv "$f" "./dist/FlClash-${version}-macos-${arch}.dmg"
+            done
+          fi
+          # Cleanup empty dirs
+          find ./dist -type d -empty -delete 2>/dev/null || true
 
       - name: Upload
         uses: actions/upload-artifact@v4
@@ -255,10 +278,6 @@ jobs:
           find . -type f -exec sha256sum {} \; > SHA256SUMS
 
 
-      - name: Flatten artifacts
-        if: ${{ env.IS_STABLE == 'true' }}
-        run: |
-          find ./dist -type f -exec mv {} ./dist/ \;
       - name: Release
         if: ${{ env.IS_STABLE == 'true' }}
         uses: softprops/action-gh-release@v2

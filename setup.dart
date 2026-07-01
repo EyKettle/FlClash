@@ -182,6 +182,8 @@ Future<int> _package(
       platform,
       '--targets',
       targets,
+      '--artifact-name',
+      'FlClash-{{build_name}}-{{platform}}{{#is_installer}}-setup{{/is_installer}}{{#ext}}.{{ext}}{{/ext}}',
       if (androidArch != null)
         '--build-target-platform=${_androidFlutterTarget[androidArch]!}',
       if (flutterBuildArgs.isNotEmpty)
