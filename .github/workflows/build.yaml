@@ -195,14 +195,13 @@ jobs:
 
           for i in "${!tags[@]}"; do
               curr="${tags[i]}"
-              [[ "$curr" == "$last_ver" ]] && break
-
               prev="${tags[i+1]}"
               range="${prev:+$prev..}$curr"
 
               echo -e "## $curr\n" >> "$temp"
               git log --no-merges --pretty=format:"%s" "$range" | \
               awk -f ./scripts/group-commits.awk >> "$temp"
+              [[ "$curr" == "$last_ver" ]] && break
           done
           [ -f CHANGELOG.md ] && cat CHANGELOG.md >> "$temp"
 
@@ -263,13 +262,14 @@ jobs:
 
           for i in "${!tags[@]}"; do
             curr="${tags[i]}"
-            [[ "$curr" == "$preTag" ]] && break
             prev="${tags[i+1]}"
             range="${prev:+$prev..}$curr"
 
             echo -e "## $curr\n" >> "$out"
             git log --no-merges --pretty=format:"%s" "$range" | \
             awk -f ./scripts/group-commits.awk >> "$out"
+
+            [[ "$curr" == "$preTag" ]] && break
           done
 
       - name: Generate sha256
