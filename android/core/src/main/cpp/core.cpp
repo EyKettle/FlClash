@@ -1,4 +1,5 @@
 #include <jni.h>
+#include <cstdlib>
 #include <cstring>
 
 #ifdef LIBCLASH
@@ -7,12 +8,44 @@
 #include "libclash.h"
 #include "bride.h"
 
+static void throw_out_of_memory(JNIEnv *env) {
+    const auto exception = find_class("java/lang/OutOfMemoryError");
+    if (exception != nullptr) {
+        env->ThrowNew(exception, "malloc failed");
+    }
+}
+
+static char *empty_string() {
+    return strdup("");
+}
+
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_follow_clash_core_Core_startTun(JNIEnv *env, jobject thiz, jint fd, jobject cb,
                                          jstring stack, jstring address, jstring dns) {
     const auto interface = new_global(cb);
-    startTUN(interface, fd, get_string(stack), get_string(address), get_string(dns));
+    const auto stackValue = get_string(stack);
+    if (stackValue == nullptr) {
+        del_global(interface);
+        throw_out_of_memory(env);
+        return;
+    }
+    const auto addressValue = get_string(address);
+    if (addressValue == nullptr) {
+        free(stackValue);
+        del_global(interface);
+        throw_out_of_memory(env);
+        return;
+    }
+    const auto dnsValue = get_string(dns);
+    if (dnsValue == nullptr) {
+        free(stackValue);
+        free(addressValue);
+        del_global(interface);
+        throw_out_of_memory(env);
+        return;
+    }
+    startTUN(interface, fd, stackValue, addressValue, dnsValue);
 }
 
 extern "C"
@@ -30,14 +63,25 @@ Java_com_follow_clash_core_Core_forceGC(JNIEnv *env, jobject thiz) {
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_follow_clash_core_Core_updateDNS(JNIEnv *env, jobject thiz, jstring dns) {
-    updateDns(get_string(dns));
+    const auto dnsValue = get_string(dns);
+    if (dnsValue == nullptr) {
+        throw_out_of_memory(env);
+        return;
+    }
+    updateDns(dnsValue);
 }
 
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_follow_clash_core_Core_invokeAction(JNIEnv *env, jobject thiz, jstring data, jobject cb) {
     const auto interface = new_global(cb);
-    invokeAction(interface, get_string(data));
+    const auto dataValue = get_string(data);
+    if (dataValue == nullptr) {
+        del_global(interface);
+        throw_out_of_memory(env);
+        return;
+    }
+    invokeAction(interface, dataValue);
 }
 
 extern "C"
@@ -76,7 +120,20 @@ JNIEXPORT void JNICALL
 Java_com_follow_clash_core_Core_quickSetup(JNIEnv *env, jobject thiz, jstring init_params_string,
                                            jstring setup_params_string, jobject cb) {
     const auto interface = new_global(cb);
-    quickSetup(interface, get_string(init_params_string), get_string(setup_params_string));
+    const auto initParamsValue = get_string(init_params_string);
+    if (initParamsValue == nullptr) {
+        del_global(interface);
+        throw_out_of_memory(env);
+        return;
+    }
+    const auto setupParamsValue = get_string(setup_params_string);
+    if (setupParamsValue == nullptr) {
+        free(initParamsValue);
+        del_global(interface);
+        throw_out_of_memory(env);
+        return;
+    }
+    quickSetup(interface, initParamsValue, setupParamsValue);
 }
 
 
@@ -117,7 +174,12 @@ call_tun_interface_resolve_process_impl(void *tun_interface, const int protocol,
             new_string(source),
             new_string(target),
             uid));
-    return get_string(packageName);
+    const auto packageNameValue = get_string(packageName);
+    if (packageNameValue == nullptr) {
+        throw_out_of_memory(env);
+        return empty_string();
+    }
+    return packageNameValue;
 }
 
 static void call_invoke_interface_result_impl(void *invoke_interface, const char *data) {
