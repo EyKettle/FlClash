@@ -223,7 +223,21 @@ Windows-only privileged helper for starting the core as admin and managing TUN. 
 
 ### Localization
 
-ARB files in `arb/`. Generated via `flutter_intl` into `lib/l10n/`. Use `AppLocalizations.of(context)!` for strings.
+Project uses **Localizely's Flutter Intl** (third-party, not Flutter's built-in `gen-l10n`).
+
+**Toolchain:**
+- Translation source: `arb/intl_{locale}.arb` (e.g. `intl_en.arb`, `intl_zh_CN.arb`)
+- Config: `pubspec.yaml` → `flutter_intl:` section (generates into `lib/l10n/`)
+- CLI generator: `dart run intl_utils:generate` (dev dependency, CI-ready)
+- IDE plugin: Flutter Intl (VS Code / IntelliJ) — watches ARB files for auto-generation
+
+**Workflow:**
+1. Edit `arb/intl_{locale}.arb` (the source of truth)
+2. Run `dart run intl_utils:generate` to regenerate code into `lib/l10n/`
+3. Generated files (`lib/l10n/l10n.dart`, `lib/l10n/intl/messages_*.dart`) are `// GENERATED CODE — DO NOT MODIFY BY HAND`
+
+**Caveats:**
+- When running `flutter pub get` with Chinese mirrors (`PUB_HOSTED_URL=https://pub.flutter-io.cn`), `intl_utils` may NOT auto-regenerate. Always run `dart run intl_utils:generate` explicitly after modifying ARB files.
 
 **Supported locales:** `en`, `zh_CN`, `ja`, `ru`
 
