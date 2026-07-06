@@ -467,6 +467,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "invalidPolicy": m7,
     "invalidProxy": m8,
     "invalidProxyProvider": m9,
+    "invalidQrcode": MessageLookupByLibrary.simpleMessage("Invalid QR code"),
     "invalidSubRule": m10,
     "ipcidr": MessageLookupByLibrary.simpleMessage("Ipcidr"),
     "ipv6Desc": MessageLookupByLibrary.simpleMessage(

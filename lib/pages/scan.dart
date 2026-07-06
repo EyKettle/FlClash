@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
-import 'package:fl_clash/common/color.dart';
+import 'package:fl_clash/common/common.dart';
 import 'package:fl_clash/providers/action.dart';
 import 'package:fl_clash/state.dart';
 import 'package:fl_clash/widgets/activate_box.dart';
@@ -16,14 +16,13 @@ class ScanPage extends StatefulWidget {
 }
 
 class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
-  // 1. 改变检测速度为默认或正常，允许连续识别
   final MobileScannerController controller = MobileScannerController(
     detectionSpeed: DetectionSpeed.normal, 
     formats: const [BarcodeFormat.qrCode],
   );
 
   StreamSubscription<Object?>? _subscription;
-  bool _isPopping = false; // 防止多次重复触发 pop
+  bool _isPopping = false;
 
   @override
   void initState() {
@@ -32,9 +31,8 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
     _startScanning();
   }
 
-  // 提取启动和监听逻辑，避免重复写
   void _startScanning() {
-    if (_subscription != null) return; // 确保不重复监听
+    if (_subscription != null) return;
     _subscription = controller.barcodes.listen(_handleBarcode);
     unawaited(controller.start());
   }
@@ -47,21 +45,23 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
 
   void _handleBarcode(BarcodeCapture barcodeCapture) {
     if (_isPopping || barcodeCapture.barcodes.isEmpty) return;
-    
+
     final barcode = barcodeCapture.barcodes.first;
     final rawValue = barcode.rawValue;
-    
+
     if (rawValue == null || rawValue.isEmpty) return;
 
-    _isPopping = true; // 锁死状态，防止重复 pop
-    
-    // 很多二维码内容并不是标准的 URL 格式（可能只是普通字符串）
-    // 如果你只需要拿到二维码里的文本，直接返回原始值即可，不用强求 BarcodeType.url
-    if (barcode.type == BarcodeType.url || rawValue.startsWith('http')) {
+    if (barcode.type == BarcodeType.url || rawValue.isUrl) {
+      _isPopping = true;
       Navigator.pop<String>(context, rawValue);
     } else {
-      // 如果不是 URL，也返回原始文本，由调用方决定怎么处理
-      Navigator.pop<String>(context, rawValue);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.appLocalizations.invalidQrcode),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(milliseconds: 1500),
+        ),
+      );
     }
   }
 
@@ -74,10 +74,10 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
       case AppLifecycleState.paused:
         break;
       case AppLifecycleState.resumed:
-        _startScanning(); // 使用封装好的安全启动
+        _startScanning();
         break;
       case AppLifecycleState.inactive:
-        _stopScanning(); // 使用封装好的安全停止
+        _stopScanning();
         break;
     }
   }

@@ -319,6 +319,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "invalidPolicy": m7,
     "invalidProxy": m8,
     "invalidProxyProvider": m9,
+    "invalidQrcode": MessageLookupByLibrary.simpleMessage("无效的二维码"),
     "invalidSubRule": m10,
     "ipcidr": MessageLookupByLibrary.simpleMessage("IP/掩码"),
     "ipv6Desc": MessageLookupByLibrary.simpleMessage("开启后将可以接收IPv6流量"),

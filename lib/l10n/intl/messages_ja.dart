@@ -363,6 +363,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "invalidPolicy": m7,
     "invalidProxy": m8,
     "invalidProxyProvider": m9,
+    "invalidQrcode": MessageLookupByLibrary.simpleMessage("無効なQRコード"),
     "invalidSubRule": m10,
     "ipcidr": MessageLookupByLibrary.simpleMessage("IPCIDR"),
     "ipv6Desc": MessageLookupByLibrary.simpleMessage("有効化するとIPv6トラフィックを受信可能"),

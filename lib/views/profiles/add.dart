@@ -30,11 +30,15 @@ class AddProfileView extends StatelessWidget {
       return;
     }
     final url = await BaseNavigator.push(context, const ScanPage());
-    if (url != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _handleAddProfileFormURL(url);
-      });
+    if (url == null) return;
+    if (!url.isUrl) {
+      // ignore: use_build_context_synchronously
+      context.showSnackBar(context.appLocalizations.urlTip(''));
+      return;
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _handleAddProfileFormURL(url);
+    });
   }
 
   Future<void> _toAdd() async {

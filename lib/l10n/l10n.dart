@@ -4378,6 +4378,16 @@ class AppLocalizations {
   String get suspended {
     return Intl.message('Suspended...', name: 'suspended', desc: '', args: []);
   }
+
+  /// `Invalid QR code`
+  String get invalidQrcode {
+    return Intl.message(
+      'Invalid QR code',
+      name: 'invalidQrcode',
+      desc: '',
+      args: [],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalizations> {
