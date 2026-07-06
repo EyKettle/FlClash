@@ -92,6 +92,25 @@ Future<VM2<String, String>> makeRealProfileTask(
 }
 
 const _ruleParams = {'no-resolve', 'src'};
+const _defaultRuleTarget = 'DIRECT';
+const _unsupportedRuleFixTypes = {
+  'MATCH',
+  'SUB-RULE',
+  'AND',
+  'OR',
+  'NOT',
+  'DOMAIN-REGEX',
+  'PROCESS-NAME-REGEX',
+  'PROCESS-PATH-REGEX',
+};
+const _ruleTypesWithParams = {
+  'GEOIP',
+  'IP-ASN',
+  'IP-CIDR',
+  'IP-CIDR6',
+  'IP-SUFFIX',
+  'RULE-SET',
+};
 
 /// Fixes rules that are missing a TARGET field.
 /// Some subscription sources produce rules like `IP-CIDR,192.133.76.0/22,no-resolve`
@@ -99,33 +118,39 @@ const _ruleParams = {'no-resolve', 'src'};
 /// This inserts a default TARGET to prevent mihomo from treating the parameter
 /// as a proxy name.
 List<String> _fixRules(List<String> rules) {
-  String defaultTarget = 'DIRECT';
+  var defaultTarget = _defaultRuleTarget;
   for (final rule in rules.reversed) {
-    final parts = rule.split(',');
-    final nonParams = parts.where((p) => !_ruleParams.contains(p)).toList();
-    if (nonParams.isNotEmpty && nonParams.first == 'MATCH') {
-      if (nonParams.length >= 2 && nonParams.last.isNotEmpty) {
-        defaultTarget = nonParams.last;
+    final parts = rule.split(',').map((part) => part.trim()).toList();
+    if (parts.length >= 2 && parts.first.toUpperCase() == 'MATCH') {
+      if (parts[1].isNotEmpty) {
+        defaultTarget = parts[1];
       }
       break;
     }
   }
 
   return rules.map((rule) {
-    final parts = rule.split(',');
-    final nonParams = parts.where((p) => !_ruleParams.contains(p)).toList();
-    if (nonParams.length < 2) return rule;
-    final first = nonParams.first;
-    final isMatch = first == 'MATCH';
-    final isSubRule = first == 'SUB-RULE';
-    if (isMatch || isSubRule) return rule;
-    // A well-formed rule has at least: TYPE, CONTENT, TARGET (3 non-param parts)
-    if (nonParams.length >= 3) return rule;
-    // Missing TARGET: nonParams is [TYPE, CONTENT]. Insert defaultTarget.
-    final params = parts.where((p) => _ruleParams.contains(p)).toList();
-    return [...nonParams, defaultTarget, ...params].join(',');
+    final parts = rule.split(',').map((part) => part.trim()).toList();
+    if (parts.length < 2) return rule;
+
+    final ruleType = parts.first.toUpperCase();
+    if (_unsupportedRuleFixTypes.contains(ruleType)) return rule;
+    if (parts.length == 2) {
+      return [...parts, defaultTarget].join(',');
+    }
+
+    final targetOrParam = parts[2];
+    if (targetOrParam.isEmpty) {
+      return [parts[0], parts[1], defaultTarget, ...parts.sublist(3)].join(',');
+    }
+    if (!_ruleTypesWithParams.contains(ruleType) ||
+        !_ruleParams.contains(targetOrParam)) {
+      return rule;
+    }
+    return [parts[0], parts[1], defaultTarget, ...parts.sublist(2)].join(',');
   }).toList();
 }
+
 Future<VM2<String, String>> _makeRealProfileTask(
   MakeRealProfileState data,
 ) async {
