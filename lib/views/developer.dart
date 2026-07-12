@@ -1,5 +1,4 @@
 import 'package:fl_clash/common/common.dart';
-import 'package:fl_clash/core/controller.dart';
 import 'package:fl_clash/enum/enum.dart';
 import 'package:fl_clash/models/common.dart';
 import 'package:fl_clash/providers/action.dart';
@@ -40,20 +39,6 @@ class DeveloperView extends ConsumerWidget {
             }
           },
         ),
-        if (globalState.isPre)
-          ListItem(
-            title: Text(appLocalizations.crashTest),
-            minVerticalPadding: 12,
-            onTap: () async {
-              final res = await globalState.showMessage(
-                message: TextSpan(text: appLocalizations.confirmForceCrashCore),
-              );
-              if (res != true) {
-                return;
-              }
-              coreController.crash();
-            },
-          ),
         ListItem(
           title: Text(appLocalizations.clearData),
           minVerticalPadding: 12,

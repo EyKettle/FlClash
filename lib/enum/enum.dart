@@ -249,7 +249,6 @@ enum ActionMethod {
   stopListener,
   getCountryCode,
   getMemory,
-  crash,
   setupConfig,
   deleteFile,
 

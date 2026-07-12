@@ -133,13 +133,6 @@ object Service {
         }
     }
 
-    suspend fun setCrashlytics(
-        enable: Boolean
-    ): Result<Unit> {
-        return Result.success(Unit)
-    }
-
-
     private suspend fun awaitIResultInterface(
         block: (IResultInterface) -> Unit
     ): Long = suspendCancellableCoroutine { continuation ->

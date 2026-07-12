@@ -174,15 +174,10 @@ class RemoteService : Service(),
 
                 false -> Core.callSetEventListener(null)
             }
-        }
 
-        override fun setCrashlytics(enable: Boolean) {
-            // No-op: Firebase crashlytics removed in fork
-        }
 
         override fun getRunTime(): Long {
             return State.runTime
-        }
     }
 
     override fun onBind(intent: Intent?): IBinder {

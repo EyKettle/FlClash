@@ -275,10 +275,6 @@ class CoreController {
     await _interface.destroy();
   }
 
-  Future<void> crash() async {
-    await _interface.crash();
-  }
-
   Future<String> deleteFile(String path) async {
     return _interface.deleteFile(path);
   }

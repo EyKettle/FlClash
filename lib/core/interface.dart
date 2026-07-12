@@ -61,8 +61,6 @@ mixin CoreInterface {
 
   FutureOr<void> stopLog();
 
-  Future<bool> crash();
-
   FutureOr<String> getConnections();
 
   FutureOr<bool> closeConnection(String id);
@@ -172,11 +170,6 @@ abstract class CoreHandlerInterface with CoreInterface {
           data: json.encode(setupParams),
         ) ??
         '';
-  }
-
-  @override
-  Future<bool> crash() async {
-    return await _invoke<bool>(method: ActionMethod.crash) ?? false;
   }
 
   @override
