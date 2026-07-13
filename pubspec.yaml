@@ -16,7 +16,7 @@ dependencies:
   shared_preferences: ^2.5.3
   window_manager:
     git:
-      url: https://github.com/chen08209/window_manager
+      url: https://github.com/EyKettle/window_manager
       ref: main
       path: packages/window_manager
   dynamic_color: ^1.8.1
@@ -45,10 +45,7 @@ dependencies:
   webdav_client: ^1.2.2
   dio: ^5.8.0+1
   win32: ^5.5.1
-  re_editor:
-    git:
-      url: https://github.com/chen08209/re-editor
-      ref: main
+  re_editor: ^0.10.0
   re_highlight: ^0.0.3
   archive: ^4.0.7
   emoji_regex: ^0.0.5
@@ -62,10 +59,7 @@ dependencies:
   riverpod_annotation: ^4.0.2
   riverpod: ^3.2.1
   material_color_utilities: ^0.13.0
-  flutter_js:
-    git:
-      url: https://github.com/chen08209/flutter_js
-      ref: master
+  flutter_js: ^0.8.0
   flutter_svg: ^2.1.0
   flutter_cache_manager: ^3.4.1
   crypto: ^3.0.3
