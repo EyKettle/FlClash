@@ -71,6 +71,9 @@ class Window {
 
   Future<void> show() async {
     render?.resume();
+    if (system.isLinux) {
+      await windowManager.restore();
+    }
     await windowManager.show();
     await windowManager.focus();
     await windowManager.setSkipTaskbar(false);
