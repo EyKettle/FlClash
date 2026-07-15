@@ -109,6 +109,14 @@ jobs:
           if [ "${{ runner.os }}" = "Windows" ]; then
             git config --global core.longpaths true
           fi
+          # apt retry — Linux only, mitigates ports.ubuntu.com transient failures
+          if [ "${{ runner.os }}" = "Linux" ]; then
+            printf '%s\n' \
+              'Acquire::Retries "3";' \
+              'Acquire::http::Timeout "30";' \
+              'Acquire::https::Timeout "30";' \
+              | sudo tee /etc/apt/apt.conf.d/99retry >/dev/null
+          fi
 
       - if: startsWith(matrix.os, 'windows-11-arm')
         name: Setup Rust
