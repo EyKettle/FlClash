@@ -1,7 +1,12 @@
 #!/usr/bin/awk -f
 # Group Conventional Commits by type for changelog/release generation
 # Input: git log --pretty=format:"%s" lines
-# Output: type-grouped sections with "## type" headers
+# Output: type-grouped sections with "<prefix> type" headers
+# Usage: awk -f group-commits.awk [-v heading_prefix="###"]
+
+BEGIN {
+  if (heading_prefix == "") heading_prefix = "###"
+}
 
 !/^Update changelog/ && NF {
   line = $0; type = ""; scope = ""; desc = ""
@@ -37,12 +42,12 @@
 }
 END {
   f = 1
-  if (feats)  { if (!f) print ""; print "## feat"; printf "%s", feats; f = 0 }
-  if (fixes)  { if (!f) print ""; print "## fix"; printf "%s", fixes; f = 0 }
-  if (docss)  { if (!f) print ""; print "## docs"; printf "%s", docss; f = 0 }
-  if (chores) { if (!f) print ""; print "## chore"; printf "%s", chores; f = 0 }
-  if (builds) { if (!f) print ""; print "## build"; printf "%s", builds; f = 0 }
-  if (cis)    { if (!f) print ""; print "## ci"; printf "%s", cis; f = 0 }
-  if (refs)   { if (!f) print ""; print "## refactor"; printf "%s", refs; f = 0 }
-  if (other)  { if (!f) print ""; print "## other"; printf "%s", other }
+  if (feats)  { if (!f) print ""; print heading_prefix " feat"; printf "%s", feats; f = 0 }
+  if (fixes)  { if (!f) print ""; print heading_prefix " fix"; printf "%s", fixes; f = 0 }
+  if (docss)  { if (!f) print ""; print heading_prefix " docs"; printf "%s", docss; f = 0 }
+  if (chores) { if (!f) print ""; print heading_prefix " chore"; printf "%s", chores; f = 0 }
+  if (builds) { if (!f) print ""; print heading_prefix " build"; printf "%s", builds; f = 0 }
+  if (cis)    { if (!f) print ""; print heading_prefix " ci"; printf "%s", cis; f = 0 }
+  if (refs)   { if (!f) print ""; print heading_prefix " refactor"; printf "%s", refs; f = 0 }
+  if (other)  { if (!f) print ""; print heading_prefix " other"; printf "%s", other }
 }

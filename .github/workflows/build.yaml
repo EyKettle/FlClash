@@ -4,36 +4,42 @@ on:
   push:
     tags:
       - 'v*'
+
 env:
   IS_STABLE: ${{ !contains(github.ref, '-') }}
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+        name: Checkout
         with:
           submodules: recursive
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
+        name: Setup Flutter
         with:
           channel: stable
-          flutter-version: 3.44.4
+          flutter-version: '3.44.4'
           cache: true
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: flutter pub get
 
       - name: Analyze
         run: flutter analyze --no-fatal-infos
 
-      - name: Run tests
+      - name: Run Tests
         run: flutter test --reporter expanded
 
   build:
+    name: Build
     needs: [ test ]
     runs-on: ${{ matrix.os }}
     strategy:
@@ -42,12 +48,11 @@ jobs:
           - platform: android
             os: ubuntu-latest
           - platform: windows
-            os: Windows-2022
+            os: windows-2022
             arch: amd64
           - platform: linux
             os: ubuntu-22.04
             arch: amd64
-
           - platform: macos
             os: macos-latest
             arch: arm64
@@ -57,88 +62,75 @@ jobs:
           - platform: linux
             os: ubuntu-24.04-arm
             arch: arm64
-
     steps:
-      - name: Setup rust
-        if: startsWith(matrix.os, 'windows-11-arm')
+      - uses: actions/checkout@v7
+        name: Checkout
+        with:
+          submodules: recursive
+
+      - if: startsWith(matrix.platform, 'android')
+        name: Free Disk Space
+        run: |
+          sudo apt-get clean
+          docker system prune -af --volumes 2>/dev/null || true
+          rm -rf ~/.gradle/caches/
+
+      - if: startsWith(matrix.platform, 'android')
+        name: Setup Android Signing
+        run: |
+          echo "${{ secrets.KEYSTORE }}" | base64 --decode > android/app/keystore.jks
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/local.properties
+          echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> android/local.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/local.properties
+
+      - uses: actions/setup-go@v5
+        name: Setup Go
+        with:
+          go-version: '1.26.5'
+
+      - uses: subosito/flutter-action@v2
+        name: Setup Flutter
+        with:
+          channel: ${{ (startsWith(matrix.os, 'windows-11-arm') || startsWith(matrix.os, 'ubuntu-24.04-arm')) && 'master' || 'stable' }}
+          flutter-version: '3.44.4'
+          cache: true
+
+      - if: startsWith(matrix.platform, 'android')
+        uses: nttld/setup-ndk@v1
+        name: Setup NDK
+        with:
+          ndk-version: r28c
+
+      - name: Setup Environment
+        run: |
+          # Pre-add pub cache to PATH so setup.dart can find flutter_distributor
+          echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
+          # Git longpaths — Windows
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            git config --global core.longpaths true
+          fi
+
+      - if: startsWith(matrix.os, 'windows-11-arm')
+        name: Setup Rust
+        shell: pwsh
         run: |
           Invoke-WebRequest -Uri "https://win.rustup.rs/aarch64" -OutFile rustup-init.exe
           .\rustup-init.exe -y --default-toolchain stable
           $cargoPath = "$env:USERPROFILE\.cargo\bin"
           Add-Content $env:GITHUB_PATH $cargoPath
 
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-
-      - name: Free disk space
-        if: startsWith(matrix.platform,'android')
-        run: |
-          sudo apt-get clean
-          docker system prune -af --volumes 2>/dev/null || true
-          rm -rf ~/.gradle/caches/
-          df -h
-      - name: Setup Android Signing
-        if: startsWith(matrix.platform,'android')
-        run: |
-          echo "${{ secrets.KEYSTORE }}" | base64 --decode > android/app/keystore.jks
-
-          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/local.properties
-          echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> android/local.properties
-          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/local.properties
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.24.0'
-          cache-dependency-path: |
-            core/go.sum
-
-      - name: Enable git long paths (Windows)
-        if: startsWith(matrix.os, 'windows')
-        run: git config --global core.longpaths true
-
-      - name: Setup Flutter
-        if: ${{ !(startsWith(matrix.os, 'windows-11-arm') || startsWith(matrix.os, 'ubuntu-24.04-arm')) }}
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          flutter-version: 3.44.4
-          cache: true
-
-      - name: Setup Flutter With Other
-        if: startsWith(matrix.os, 'windows-11-arm') || startsWith(matrix.os, 'ubuntu-24.04-arm')
-        uses: subosito/flutter-action@v2
-        with:
-          channel: master
-          flutter-version: 3.44.4
-          cache: true
-
-      - name: Setup NDK
-        if: startsWith(matrix.platform,'android')
-        uses: nttld/setup-ndk@v1
-        with:
-          ndk-version: r28c
-          add-to-path: true
-          link-to-sdk: true
-
-      - name: Get Flutter Dependency
+      - name: Install Dependencies
         run: |
           flutter --version
           flutter pub get
 
-      - name: Setup
+      - name: Build Artifacts
         run: dart setup.dart ${{ matrix.platform }} ${{ env.IS_STABLE == 'true' && '--env stable' || '' }} -v
 
-      - name: Normalize artifacts
-        shell: bash
+      - name: Normalize Artifacts
         run: |
           version=$(grep '^version:' pubspec.yaml | sed 's/version: //' | sed 's/+.*//')
-          # Flatten: move files from fastforge subdirectory
           find ./dist -type f -exec mv {} ./dist/ \; 2>/dev/null || true
-          # Android: copy split APKs with arch names
           if [ "${{ matrix.platform }}" = "android" ]; then
             for apk in build/app/outputs/flutter-apk/app-*-release.apk; do
               [ -f "$apk" ] || continue
@@ -146,7 +138,6 @@ jobs:
               cp "$apk" "./dist/FlClash-${version}-android-${abi}.apk"
             done
           fi
-          # Non-Android: rename artifacts to include arch
           if [ -n "${{ matrix.arch }}" ]; then
             arch="${{ matrix.arch }}"
             for ext in AppImage deb rpm; do
@@ -164,146 +155,118 @@ jobs:
               [ -f "$f" ] && mv "$f" "./dist/FlClash-${version}-macos-${arch}.dmg"
             done
           fi
-          # Cleanup empty dirs
           find ./dist -type d -empty -delete 2>/dev/null || true
 
-      - name: Upload
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
+        name: Upload
         with:
           name: artifact-${{ matrix.platform }}${{ matrix.arch && format('-{0}', matrix.arch) }}
           path: ./dist
           overwrite: true
 
-  changelog:
-    runs-on: ubuntu-latest
+  release:
+    name: Release
     needs: [ build ]
+    if: ${{ !contains(github.ref, '-') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        if: ${{ env.IS_STABLE == 'true' }}
+      - uses: actions/checkout@v7
+        name: Checkout
         with:
           fetch-depth: 0
           ref: refs/heads/main
-      - name: Generate
-        if: ${{ env.IS_STABLE == 'true' }}
-        run: |
-          last_ver=$(grep -m1 '^## ' CHANGELOG.md 2>/dev/null | sed 's/^## //')
 
-          tags=($(git tag --merged HEAD --sort=-creatordate))
-
-          temp="NEW_CHANGELOG.md" > "$temp"
-
-          for i in "${!tags[@]}"; do
-              curr="${tags[i]}"
-              prev="${tags[i+1]}"
-              range="${prev:+$prev..}$curr"
-
-              echo -e "## $curr\n" >> "$temp"
-              git log --no-merges --pretty=format:"%s" "$range" | \
-              awk -f ./scripts/group-commits.awk >> "$temp"
-              [[ "$curr" == "$last_ver" ]] && break
-          done
-          [ -f CHANGELOG.md ] && cat CHANGELOG.md >> "$temp"
-
-          mv "$temp" CHANGELOG.md
-
-      - name: Commit
-        if: ${{ env.IS_STABLE == 'true' }}
-        run: |
-          git add CHANGELOG.md
-          if ! git diff --cached --quiet; then
-            echo "Commit pushing"
-            git config --local user.email "eykettle@tutamail.com"
-            git config --local user.name "EyKettle"
-            git commit -m "Update changelog"
-            git push
-            if [ $? -eq 0 ]; then
-              echo "Push succeeded"
-            else
-              echo "Push failed"
-              exit 1
-            fi
-          fi
-
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  upload:
-    permissions: write-all
-    needs: [ build ]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Download
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
+        name: Download Artifacts
         with:
           path: ./dist/
           pattern: artifact-*
           merge-multiple: true
 
-      - name: Generate release.md
+      - name: Update Changelog
         run: |
-          out="release.md"
-
-          # Download table first (placement on top)
           version=$(echo "${{ github.ref_name }}" | sed 's/^v//')
+          ls ./dist/
+
+          # --- CHANGELOG ---
+          last_ver=$(grep -m1 '^## ' CHANGELOG.md 2>/dev/null | sed 's/^## //')
+          tags=($(git tag --merged HEAD --sort=-creatordate))
+          temp="NEW_CHANGELOG.md"
+          : > "$temp"
+          for i in "${!tags[@]}"; do
+            curr="${tags[i]}"
+            [[ "$curr" == "$last_ver" ]] && break
+            prev="${tags[i+1]}"
+            range="${prev:+$prev..}$curr"
+            echo -e "## $curr\n" >> "$temp"
+            git log --no-merges --pretty=format:"%s" "$range" | \
+              awk -f ./scripts/group-commits.awk -v heading_prefix="###" >> "$temp"
+            echo "" >> "$temp"
+          done
+          [ -f CHANGELOG.md ] && cat CHANGELOG.md >> "$temp"
+          mv "$temp" CHANGELOG.md
+
+          # --- Release body ---
+          out="release.md"
           sed "s|VERSION|$version|g" ./.github/release_template.md > "$out"
           echo "" >> "$out"
-
-          # Then git log grouped by type
           tags=($(git tag --merged HEAD --sort=-creatordate))
-          preTag=$(curl -s "https://api.github.com/repos/EyKettle/FlClash/releases/latest" | \
-          sed -nE 's/.*"tag_name": "([^"]+)".*/\1/p')
+          preTag=$(curl -s "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest" | \
+            sed -nE 's/.*"tag_name": "([^"]+)".*/\1/p')
           [ -z "$preTag" ] && preTag="${tags[0]}"
-
           for i in "${!tags[@]}"; do
             curr="${tags[i]}"
             prev="${tags[i+1]}"
             range="${prev:+$prev..}$curr"
-
-            echo -e "## $curr\n" >> "$out"
             git log --no-merges --pretty=format:"%s" "$range" | \
-            awk -f ./scripts/group-commits.awk >> "$out"
-
+              awk -f ./scripts/group-commits.awk -v heading_prefix="##" >> "$out"
             [[ "$curr" == "$preTag" ]] && break
           done
 
-      - name: Generate sha256
-        if: ${{ env.IS_STABLE == 'true' }}
-        run: |
+          # --- SHA256SUMS ---
           cd ./dist
           find . -type f -exec sha256sum {} \; > SHA256SUMS
+          cd ..
 
-
-      - name: Release
-        if: ${{ env.IS_STABLE == 'true' }}
-        uses: softprops/action-gh-release@v2
-        with:
-          files: ./dist/*
-          body_path: './release.md'
-
-      - name: Create Fdroid Source Dir
-        if: ${{ env.IS_STABLE == 'true' }}
-        run: |
-          mkdir -p ./tmp
-          cp ./dist/*android-arm64-v8a* ./tmp/ || true
-          echo "Files copied successfully"
-
-      - name: Push to fdroid repo
-        if: ${{ env.IS_STABLE == 'true' }}
-        uses: cpina/github-action-push-to-another-repository@v1.7.2
+          # --- GitHub Release ---
+          gh release create "${{ github.ref_name }}" ./dist/* \
+            --notes-file release.md
         env:
-          SSH_DEPLOY_KEY: ${{ secrets.SSH_DEPLOY_KEY }}
-        with:
-          source-directory: ./tmp/
-          destination-github-username: EyKettle
-          destination-repository-name: FlClash-fdroid-repo
-          user-name: 'github-actions[bot]'
-          user-email: 'github-actions[bot]@users.noreply.github.com'
-          target-branch: main
-          commit-message: Update from ${{ github.ref_name }}
-          target-directory: /tmp/
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version=$(echo "${{ github.ref_name }}" | sed 's/^v//')
+          git add CHANGELOG.md
+          if ! git diff --cached --quiet; then
+            git config --local user.email "eykettle@tutamail.com"
+            git config --local user.name "EyKettle"
+            git commit -m "chore(release): bump version to ${version}"
+            git push origin main
+          fi
+
+  push:
+    name: Push
+    needs: [ release ]
+    if: ${{ !contains(github.ref, '-') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        name: Checkout
+
+      - name: Dispatch Action
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT_FDROID }}
+        run: |
+          version=$(echo "${{ github.ref_name }}" | sed 's/^v//')
+          gh api -X POST \
+            repos/${{ github.repository_owner }}/FlClash-fdroid-repo/actions/workflows/deploy.yml/dispatches \
+            -f ref=main \
+            -f "inputs[version]=${version}"
