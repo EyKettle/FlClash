@@ -174,13 +174,14 @@ class RemoteService : Service(),
 
                 false -> Core.callSetEventListener(null)
             }
-
+        }
 
         override fun getRunTime(): Long {
             return State.runTime
+        }
     }
 
-    override fun onBind(intent: Intent?): IBinder {
+    override fun onBind(intent: Intent): IBinder? {
         return binder
     }
 
