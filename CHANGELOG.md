@@ -1,3 +1,39 @@
+## v0.8.94
+
+### feat
+- fork from upstream with curated bugfix PRs
+
+### fix
+- correct version code from 0.8.95 to 0.8.94
+- (android) update RemoteService.kt for Kotlin 2.2 K2 compiler
+- (linux) restore window before show() after minimize for tray support
+- (linux) prevent window auto-show on startup for silent launch support
+- (rules) rewrite _fixRules with per-rule-type param awareness
+- (android) guard jni_get_string calls against null return
+- (scan) handle invalid QR codes and clean up AI comments
+- align CMake BINARY_NAME with pubspec package name
+- (ci) output tag content before checking preTag break condition
+- (build) add shell:bash to Normalize step for Windows compat
+- (build) normalize artifact names and configure dist output name
+- (release) correct RPM download link pointing to .deb
+- (ci) resolve all CI build and publish failures across platforms
+
+### docs
+- (agent) clarify localization toolchain as Localizely's Flutter Intl
+
+### chore
+- fix Clash.Meta url in about.dart
+- (firebase) remove all Firebase Crashlytics code
+- (release) add trailing newline to release template
+
+### build
+- (deps) migrate window_manager to EyKettle fork, use upstream for flutter_js and re_editor
+
+### ci
+- add apt retry times and timeout limit
+- restructure pipeline with aligned heading hierarchy
+- flatten artifacts and restore split APK names
+
 ## v0.8.93
 
 - Support custom overwrite
